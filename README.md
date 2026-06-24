@@ -6,64 +6,64 @@
 
 ## Overview
 
-Discharge-to-handoff communication failures are responsible for an estimated 70% of medical errors at care transitions (IOM, Joint Commission). CareHandoff AI runs a 5-agent pipeline over a discharge note — comparing it against the patient's structured EHR data and clinical guidelines — and surfaces medication gaps, lab omissions, allergy conflicts, and guideline violations for clinician review before the patient leaves.
+Discharge-to-handoff communication failures are responsible for an estimated 70% of medical errors at care transitions (IOM, Joint Commission). CareHandoff AI runs a 5-agent pipeline over a discharge note, comparing it against the patient's structured EHR data and clinical guidelines, and surfaces medication gaps, lab omissions, allergy conflicts, and guideline violations for clinician review before the patient leaves.
 
-**Decision-support only** — every flagged item is reviewed and acted on by a clinician. No autonomous clinical decisions are made.
+**Decision-support only**: Every flagged item is reviewed and acted on by a clinician. No autonomous clinical decisions are made.
 
 ---
 
 ## Features
 
-- **5-agent pipeline** — Planning → EHR Comparison + Guidelines (parallel) → Self-Correction → HITL Review
-- **EHR cross-check** — compares discharge note against MIMIC-IV medications, labs, allergies, and procedures
-- **RxNorm normalization** — live NLM API call ensures `"Metoprolol Succinate ER"` and `"metoprolol succinate"` are treated as the same drug
-- **Guideline RAG** — semantic search over 17 ACC/AHA, AHRQ, and specialty society guidelines
-- **Self-correction** — dedicated agent re-reads the note and dismisses false positives before the clinician sees anything
-- **Adaptive HITL loop** — when a clinician dismisses a gap, the rationale re-enters the reasoning loop and the gap may be re-flagged
-- **Note rewrite** — generates a corrected discharge note with every confirmed gap addressed and hallucination-guarded
-- **Clinical Q&A** — chat interface for guideline lookups, powered by the same RAG index
-- **React SPA** — clean 4-tab UI (Analysis → Review → Revised Note → Q&A)
+- **5-agent pipeline**: Planning → EHR Comparison + Guidelines (parallel) → Self-Correction → HITL Review
+- **EHR cross-check**: Compares discharge note against MIMIC-IV medications, labs, allergies, and procedures
+- **RxNorm normalization**: Live NLM API call ensures `"Metoprolol Succinate ER"` and `"metoprolol succinate"` are treated as the same drug
+- **Guideline RAG**: Semantic search over 17 ACC/AHA, AHRQ, and specialty society guidelines
+- **Self-correction**: Dedicated agent re-reads the note and dismisses false positives before the clinician sees anything
+- **Adaptive HITL loop**: When a clinician dismisses a gap, the rationale re-enters the reasoning loop and the gap may be re-flagged
+- **Note rewrite**: Generates a corrected discharge note with every confirmed gap addressed and hallucination-guarded
+- **Clinical Q&A**: Chat interface for guideline lookups, powered by the same RAG index
+- **React SPA**: Clean 4-tab UI (Analysis → Review → Revised Note → Q&A)
 
 ---
 
 ## Architecture
 
 ```
-Discharge Note + hadm_id
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│  Agent 1 — Planning Agent               │
-│  Reads full note → builds TaskPlan      │
-│  Identifies diagnoses, meds, labs,      │
-│  guideline topics, gaps to investigate  │
-└──────────────────┬──────────────────────┘
-                   │ TaskPlan
-         ┌─────────┴──────────┐  ← parallel
-         ▼                    ▼
-┌──────────────────┐  ┌───────────────────────┐
-│ Agent 2          │  │ Agent 3               │
-│ EHR Comparison   │  │ Guidelines Agent      │
-│ · Medication gaps│  │ · RAG → ChromaDB      │
-│ · Lab gaps       │  │ · ACC/AHA compliance  │
-│ · RxNorm lookup  │  │ · AHRQ RED Toolkit    │
-│ · Dose checks    │  │ · 17 guideline topics │
-└────────┬─────────┘  └──────────┬────────────┘
-         └──────────┬────────────┘
-                    │ All gaps merged
-                    ▼
-┌─────────────────────────────────────────┐
-│  Agent 4 — Self-Correction Agent        │
-│  Re-verifies every gap (reduces FP)     │
-│  Adjusts severity by care setting       │
-└──────────────────┬──────────────────────┘
-                   │ VerifiedGaps
-                   ▼
-┌─────────────────────────────────────────┐
-│  Agent 5 — HITL Orchestrator            │
-│  Formats ReviewPackage for clinician    │
-│  Dismissals → re-enter reasoning loop   │
-└─────────────────────────────────────────┘
+                                                               Discharge Note + hadm_id
+                                                                        │
+                                                                        ▼
+                                                               ┌─────────────────────────────────────────┐
+                                                               │  Agent 1 — Planning Agent               │
+                                                               │  Reads full note → builds TaskPlan      │
+                                                               │  Identifies diagnoses, meds, labs,      │
+                                                               │  guideline topics, gaps to investigate  │
+                                                               └──────────────────┬──────────────────────┘
+                                                                                  │ TaskPlan
+                                                                        ┌─────────┴──────────┐  ← parallel
+                                                                        ▼                    ▼
+                                                               ┌──────────────────┐  ┌───────────────────────┐
+                                                               │ Agent 2          │  │ Agent 3               │
+                                                               │ EHR Comparison   │  │ Guidelines Agent      │
+                                                               │ · Medication gaps│  │ · RAG → ChromaDB      │
+                                                               │ · Lab gaps       │  │ · ACC/AHA compliance  │
+                                                               │ · RxNorm lookup  │  │ · AHRQ RED Toolkit    │
+                                                               │ · Dose checks    │  │ · 17 guideline topics │
+                                                               └────────┬─────────┘  └──────────┬────────────┘
+                                                                        └──────────┬────────────┘
+                                                                                   │ All gaps merged
+                                                                                   ▼
+                                                               ┌─────────────────────────────────────────┐
+                                                               │  Agent 4 — Self-Correction Agent        │
+                                                               │  Re-verifies every gap (reduces FP)     │
+                                                               │  Adjusts severity by care setting       │
+                                                               └──────────────────┬──────────────────────┘
+                                                                                  │ VerifiedGaps
+                                                                                  ▼
+                                                               ┌─────────────────────────────────────────┐
+                                                               │  Agent 5 — HITL Orchestrator            │
+                                                               │  Formats ReviewPackage for clinician    │
+                                                               │  Dismissals → re-enter reasoning loop   │
+                                                               └─────────────────────────────────────────┘
 ```
 
 ---
@@ -111,7 +111,7 @@ uvicorn main:app --reload
 - Python 3.11+
 - Node.js 20+ (only if rebuilding the frontend)
 - OpenAI API key (`text-embedding-3-small` + `gpt-4o-mini`)
-- MIMIC-IV data access (free via PhysioNet — requires CITI training)
+- MIMIC-IV data access (free via PhysioNet, requires CITI training)
 
 ### Installation
 
@@ -150,7 +150,7 @@ Place files in `data/raw/mimic/` (`.csv` or `.csv.gz` both work):
 | `procedures_icd.csv` | MIMIC-IV | Recommended |
 | `d_icd_diagnoses.csv` | MIMIC-IV | Recommended |
 
-Access: [physionet.org](https://physionet.org) — free, requires CITI training (~2 hours). Approval takes 3–5 days.
+Access: [physionet.org](https://physionet.org): It's free, requires CITI training (~2 hours). Approval takes 3–5 days.
 
 #### Clinical guidelines
 
@@ -194,7 +194,7 @@ Interactive docs: `http://localhost:8000/api/docs`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Health check — returns ingestion status and chunk counts |
+| `GET` | `/health` | Health check: returns ingestion status and chunk counts |
 | `GET` | `/patients` | List available `hadm_id` values |
 | `POST` | `/analyze` | Run the 5-agent pipeline |
 | `GET` | `/review` | Get pending review items |
@@ -259,7 +259,7 @@ Embeddings are baked into the Docker image at build time so the container starts
 2. Go to [render.com](https://render.com) → New → Blueprint → connect your repo
 3. In your service's **Environment** tab, set:
    - `OPENAI_API_KEY`
-   - `OPENAI_EMBEDDING_KEY` (standard `sk-...` key — required for embeddings even if using OpenRouter for LLM)
+   - `OPENAI_EMBEDDING_KEY` (standard `sk-...` key: required for embeddings even if using OpenRouter for LLM)
    - `OPENAI_API_BASE` (set to `https://openrouter.ai/api/v1` if using OpenRouter, otherwise leave blank)
 
 Render passes the `OPENAI_EMBEDDING_KEY` and `OPENAI_API_KEY` values as Docker build args automatically (configured in `render.yaml`).
@@ -290,7 +290,7 @@ docker run -p 8000:8000 \
 
 ```
 CareHandoff_AI/
-├── main.py                      # FastAPI app — mounts API, Gradio Q&A, React SPA
+├── main.py                      # FastAPI app: mounts API, Gradio Q&A, React SPA
 ├── orchestrator.py              # Entry point: AgenticRAGOrchestrator.analyze()
 ├── config.py                    # All constants (model names, paths, chunk sizes)
 ├── requirements.txt
@@ -299,17 +299,17 @@ CareHandoff_AI/
 ├── .env.example
 │
 ├── agents/
-│   ├── planning_agent.py        # Agent 1 — TaskPlan via structured output
-│   ├── ehr_comparison_agent.py  # Agent 2 — medication/lab/allergy/dose gaps
-│   ├── guidelines_agent.py      # Agent 3 — RAG-retrieved guideline compliance
-│   ├── self_correction_agent.py # Agent 4 — re-verify gaps, adjust severity
-│   ├── hitl_orchestrator.py     # Agent 5 — review package + dismissal re-analysis
+│   ├── planning_agent.py        # Agent 1: TaskPlan via structured output
+│   ├── ehr_comparison_agent.py  # Agent 2: medication/lab/allergy/dose gaps
+│   ├── guidelines_agent.py      # Agent 3: RAG-retrieved guideline compliance
+│   ├── self_correction_agent.py # Agent 4: re-verify gaps, adjust severity
+│   ├── hitl_orchestrator.py     # Agent 5: review package + dismissal re-analysis
 │   ├── note_rewrite_agent.py    # Rewrites note with confirmed gaps addressed
 │   └── rewrite_validator.py     # Hallucination guard on [ADDED] blocks
 │
 ├── api/
 │   ├── routes.py                # REST endpoints (/analyze, /review, /note, /health)
-│   └── state.py                 # Singleton AppState — shared across requests
+│   └── state.py                 # Singleton AppState, shared across requests
 │
 ├── rag/
 │   ├── vector_store.py          # ChromaDB: two collections, section-aware chunking
@@ -318,13 +318,13 @@ CareHandoff_AI/
 ├── qa/
 │   └── clinical_qa.py           # MetaIntelligentClinicalRAG + GuardedClinicalRAG
 │
-├── gradio_qa_app.py             # Gradio Q&A blocks — mounted at /qa by main.py
+├── gradio_qa_app.py             # Gradio Q&A blocks, mounted at /qa by main.py
 │
 ├── data/
 │   ├── loaders/
 │   │   ├── mimic_loader.py      # MIMIC-IV CSV loader; get_patient_ehr(hadm_id)
 │   │   ├── guidelines_loader.py # Loads .txt/.pdf/.html → LangChain Documents
-│   │   └── rxnorm_client.py     # NLM RxNorm REST API — live drug normalization
+│   │   └── rxnorm_client.py     # NLM RxNorm REST API, live drug normalization
 │   └── raw/
 │       ├── mimic/               # Place MIMIC-IV CSV files here (gitignored)
 │       └── guidelines/          # 17 guideline documents (included)
@@ -383,9 +383,9 @@ The Self-Correction Agent adjusts gap severity based on the patient's destinatio
 
 | Setting | Behaviour |
 |---------|-----------|
-| `home` | Patient/caregiver responsible — higher severity for medication and monitoring gaps |
-| `skilled_nursing_facility` | Nursing staff manages meds — reduced severity unless high-risk drug |
-| `urgent_clinic` | Physician needs complete information immediately — elevated severity across all gap types |
+| `home` | Patient/caregiver responsible, higher severity for medication and monitoring gaps |
+| `skilled_nursing_facility` | Nursing staff manages meds, reduced severity unless high-risk drug |
+| `urgent_clinic` | Physician needs complete information immediately, elevated severity across all gap types |
 
 ---
 
@@ -405,7 +405,7 @@ The Self-Correction Agent adjusts gap severity based on the patient's destinatio
 
 ## Clinical Disclaimer
 
-- This system is **decision-support, not autonomous** — a clinician reviews and approves every flagged item before any action is taken
+- This system is **decision-support, not autonomous**, a clinician reviews and approves every flagged item before any action is taken
 - Final clinical responsibility rests with the treating and receiving physicians
 - Audit logging is available via `HITLOrchestrator.get_audit_log()`
 - No patient data is transmitted beyond the configured OpenAI endpoint; the ChromaDB store is local/container-bound
@@ -416,18 +416,18 @@ The Self-Correction Agent adjusts gap severity based on the patient's destinatio
 
 | Source | Role | Access |
 |--------|------|--------|
-| MIMIC-IV-Note (`discharge.csv`) | Discharge summaries to audit | PhysioNet — free, CITI training required |
+| MIMIC-IV-Note (`discharge.csv`) | Discharge summaries to audit | PhysioNet: free, CITI training required |
 | MIMIC-IV structured tables | Ground-truth EHR (meds, labs, orders) | Same PhysioNet credential |
-| ACC/AHA Guidelines | Cardiac/metabolic discharge standards | Public — included in repo |
-| AHRQ RED Toolkit | Handoff communication requirements | Public — included in repo |
-| ACG, ADA, specialty guidelines | Condition-specific discharge criteria | Public — included in repo |
+| ACC/AHA Guidelines | Cardiac/metabolic discharge standards | Public, included in repo |
+| AHRQ RED Toolkit | Handoff communication requirements | Public, included in repo |
+| ACG, ADA, specialty guidelines | Condition-specific discharge criteria | Public, included in repo |
 | RxNorm API (NLM) | Live drug name normalization | No key required |
 
 ---
 
 ## References
 
-- IOM: *To Err is Human* — communication failures as leading cause of medical errors
+- IOM: *To Err is Human*, communication failures as leading cause of medical errors
 - Joint Commission Sentinel Event Alert 58: Care Coordination
 - AHRQ Re-Engineered Discharge (RED) Toolkit
 - ACC/AHA Hypertension Guidelines (2023)
