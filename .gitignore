@@ -1,0 +1,62 @@
+# Node
+node_modules/
+frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Environment variables — NEVER commit API keys
+.env
+
+# MIMIC-IV data — excluded entirely. MIMIC is gated by a PhysioNet Data Use
+# Agreement that prohibits redistribution, even of de-identified data.
+# Users must obtain their own credentialed copy from physionet.org and
+# place the files under data/raw/mimic/ themselves.
+data/raw/mimic/
+
+# Clinical guideline documents are included in this repo (data/raw/guidelines/).
+
+# Revised notes output — may contain patient data
+data/revised_notes.csv
+
+# ChromaDB vector store — large binary files, rebuilt on startup
+chromadb_data/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage

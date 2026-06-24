@@ -1,0 +1,51 @@
+# Version control
+.git
+.gitignore
+
+# Secrets — set these in Render dashboard, never bake into image
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Large MIMIC files not used by the app
+data/raw/mimic/radiology.csv
+data/raw/mimic/radiology_detail.csv
+data/raw/mimic/discharge_detail.csv
+
+# ChromaDB — rebuilt from guidelines on first startup
+chromadb_data/
+
+# Revised notes output
+data/revised_notes.csv
+
+# Frontend dev artifacts (prod build is copied from stage 1)
+frontend/node_modules/
+frontend/dist/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docs & notebooks
+*.md
+*.ipynb
+.ipynb_checkpoints/
+logs/
