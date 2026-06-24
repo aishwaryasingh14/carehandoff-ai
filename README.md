@@ -29,41 +29,41 @@ Discharge-to-handoff communication failures are responsible for an estimated 70%
 ## Architecture
 
 ```
-                                                               Discharge Note + hadm_id
-                                                                        │
-                                                                        ▼
-                                                               ┌─────────────────────────────────────────┐
-                                                               │  Agent 1 — Planning Agent               │
-                                                               │  Reads full note → builds TaskPlan      │
-                                                               │  Identifies diagnoses, meds, labs,      │
-                                                               │  guideline topics, gaps to investigate  │
-                                                               └──────────────────┬──────────────────────┘
-                                                                                  │ TaskPlan
-                                                                        ┌─────────┴──────────┐  ← parallel
-                                                                        ▼                    ▼
-                                                               ┌──────────────────┐  ┌───────────────────────┐
-                                                               │ Agent 2          │  │ Agent 3               │
-                                                               │ EHR Comparison   │  │ Guidelines Agent      │
-                                                               │ · Medication gaps│  │ · RAG → ChromaDB      │
-                                                               │ · Lab gaps       │  │ · ACC/AHA compliance  │
-                                                               │ · RxNorm lookup  │  │ · AHRQ RED Toolkit    │
-                                                               │ · Dose checks    │  │ · 17 guideline topics │
-                                                               └────────┬─────────┘  └──────────┬────────────┘
-                                                                        └──────────┬────────────┘
-                                                                                   │ All gaps merged
-                                                                                   ▼
-                                                               ┌─────────────────────────────────────────┐
-                                                               │  Agent 4 — Self-Correction Agent        │
-                                                               │  Re-verifies every gap (reduces FP)     │
-                                                               │  Adjusts severity by care setting       │
-                                                               └──────────────────┬──────────────────────┘
-                                                                                  │ VerifiedGaps
-                                                                                  ▼
-                                                               ┌─────────────────────────────────────────┐
-                                                               │  Agent 5 — HITL Orchestrator            │
-                                                               │  Formats ReviewPackage for clinician    │
-                                                               │  Dismissals → re-enter reasoning loop   │
-                                                               └─────────────────────────────────────────┘
+Discharge Note + hadm_id
+         │
+         ▼
+┌─────────────────────────────────────────┐
+│  Agent 1 — Planning Agent               │
+│  Reads full note → builds TaskPlan      │
+│  Identifies diagnoses, meds, labs,      │
+│  guideline topics, gaps to investigate  │
+└──────────────────┬──────────────────────┘
+                   │ TaskPlan
+         ┌─────────┴──────────┐  ← parallel
+         ▼                    ▼
+┌──────────────────┐  ┌───────────────────────┐
+│ Agent 2          │  │ Agent 3               │
+│ EHR Comparison   │  │ Guidelines Agent      │
+│ · Medication gaps│  │ · RAG → ChromaDB      │
+│ · Lab gaps       │  │ · ACC/AHA compliance  │
+│ · RxNorm lookup  │  │ · AHRQ RED Toolkit    │
+│ · Dose checks    │  │ · 17 guideline topics │
+└────────┬─────────┘  └──────────┬────────────┘
+         └──────────┬────────────┘
+                    │ All gaps merged
+                    ▼
+┌─────────────────────────────────────────┐
+│  Agent 4 — Self-Correction Agent        │
+│  Re-verifies every gap (reduces FP)     │
+│  Adjusts severity by care setting       │
+└──────────────────┬──────────────────────┘
+                   │ VerifiedGaps
+                   ▼
+┌─────────────────────────────────────────┐
+│  Agent 5 — HITL Orchestrator            │
+│  Formats ReviewPackage for clinician    │
+│  Dismissals → re-enter reasoning loop   │
+└─────────────────────────────────────────┘
 ```
 
 ---
